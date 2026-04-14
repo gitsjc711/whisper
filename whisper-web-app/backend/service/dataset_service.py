@@ -282,11 +282,17 @@ class DatasetService:
                 audio_path = sample['filepath']
                 if noise_level is not None:
                     noisy_path = AudioService.add_noise(audio_path, float(noise_level))
+                    print(f"使用加噪音频: {noisy_path}")
                     audio_path = noisy_path
 
                 transcription = TranscriptionService.transcribe_audio(audio_path)
+                
+                if not transcription or not transcription.get('text'):
+                    print(f"警告: 样本 {sample['filename']} 转录结果为空")
+                    if noise_level is not None:
+                        print(f"可能是加噪导致的问题，尝试检查音频文件: {audio_path}")
 
-                if transcription:
+                if transcription and transcription.get('text'):
                     file_size = os.path.getsize(sample['filepath'])
 
                     result = {

@@ -196,19 +196,15 @@
                                             <h5 class="card-title fw-bold text-primary mb-3">
                                                 <i class="fas fa-volume-up me-2"></i>加噪测试设置
                                             </h5>
-                                            <div class="row align-items-center">
-                                                <div class="col-md-7">
-                                                    <label for="noiseLevel" class="form-label fw-bold">噪声强度 (dB):</label>
-                                                    <input type="range" class="form-range" id="noiseLevel"
-                                                           min="-20" max="-5" step="1" value="-10"
-                                                           oninput="updateNoiseLabel(this.value)">
-                                                    <div class="d-flex justify-content-between">
-                                                        <small class="text-muted">-20dB (强噪声)</small>
-                                                        <small class="fw-bold text-primary" id="noiseLabel">-10dB</small>
-                                                        <small class="text-muted">-5dB (弱噪声)</small>
+                                             <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        <label for="noiseLevel" class="form-label fw-bold mb-0">噪声强度 (dB):</label>
+                                                        <input type="number" class="form-control" id="noiseLevel"
+                                                               value="0" step="1"                                                               style="width: 120px;">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-5 text-end">
+                                                <div class="col-md-4 text-end">
                                                     <div class="form-check form-switch d-inline-block">
                                                         <input class="form-check-input" type="checkbox" id="enableNoise">
                                                         <label class="form-check-label fw-bold" for="enableNoise">启用加噪</label>
@@ -216,6 +212,7 @@
                                                     <p class="text-muted small mb-0 mt-2">上传转录和默认数据集测试均会应用此设置</p>
                                                 </div>
                                             </div>
+
                                         </div>
                                     </div>
                                 </div>
@@ -453,8 +450,6 @@
                 alert('发生错误: ' + error.message);
             });
         }
-
-        // 更新噪声标签
 
         // 转录音频（支持加噪）
         function transcribeAudio() {

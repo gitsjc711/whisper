@@ -22,20 +22,24 @@ class AudioService:
                 print("由于缺少ffmpeg，跳过加噪处理")
                 return file_path
 
-            print(f"开始加噪处理: {noise_db}dB")
+            print(f"开始加噪处理: {noise_db}dB，源文件: {file_path}")
             audio = AudioSegment.from_file(file_path)
+            
+            print(f"原始音频信息: 时长={len(audio)}ms, 采样率={audio.frame_rate}Hz, 声道={audio.channels}, 位宽={audio.sample_width}")
 
             # 生成与音频相同长度的白噪声
             duration_ms = len(audio)
             sample_rate = audio.frame_rate
-            num_samples = int(duration_ms * sample_rate / 1000)
+            num_channels = audio.channels
+            num_samples = int(duration_ms * sample_rate / 1000) * num_channels
 
             # 生成高斯白噪声
             noise_array = np.random.normal(0, 1, num_samples)
 
-            # 将噪声转换为 AudioSegment
-            # 先归一化噪声
-            noise_array = noise_array / np.max(np.abs(noise_array))
+            # 归一化噪声到 -1 到 1 范围
+            max_val = np.max(np.abs(noise_array))
+            if max_val > 0:
+                noise_array = noise_array / max_val
 
             # 计算噪声强度（相对于音频）
             audio_db = audio.dBFS
@@ -43,20 +47,26 @@ class AudioService:
 
             # 将 dB 转换为线性比例
             noise_ratio = 10 ** (target_noise_db / 20.0)
+            print(f"音频dBFS: {audio_db}, 目标噪声dB: {target_noise_db}, 噪声比例: {noise_ratio}")
 
             # 应用噪声强度
             noise_array = noise_array * noise_ratio
+
+            # 转换为 16-bit PCM
+            noise_array = np.int16(noise_array * 32767)
 
             # 创建噪声 AudioSegment
             noise_audio = AudioSegment(
                 noise_array.tobytes(),
                 frame_rate=sample_rate,
-                sample_width=2,
-                channels=1
+                sample_width=2,  # 16-bit
+                channels=num_channels
             )
 
             # 混合音频和噪声
             noisy_audio = audio.overlay(noise_audio)
+            
+            print(f"加噪后音频信息: 时长={len(noisy_audio)}ms, 采样率={noisy_audio.frame_rate}Hz")
 
             # 保存加噪后的音频到专门的目录
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -67,10 +77,20 @@ class AudioService:
             noisy_filename = f"{base_name}_noisy_{abs(int(noise_db))}dB.wav"
             noisy_path = os.path.join(noisy_folder, noisy_filename)
             
-            noisy_audio.export(noisy_path, format="wav")
+            # 导出为标准的 16kHz 单声道 WAV 文件（Whisper 要求的格式）
+            noisy_audio = noisy_audio.set_frame_rate(16000).set_channels(1)
+            noisy_audio.export(noisy_path, format="wav", parameters=["-acodec", "pcm_s16le"])
 
             print(f"加噪完成: {noisy_path}")
-            return noisy_path
+            
+            # 验证文件是否成功生成
+            if os.path.exists(noisy_path):
+                file_size = os.path.getsize(noisy_path)
+                print(f"加噪文件大小: {file_size} bytes")
+                return noisy_path
+            else:
+                print(f"错误: 加噪文件未生成")
+                return file_path
 
         except Exception as e:
             print(f"加噪失败: {e}")

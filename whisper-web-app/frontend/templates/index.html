@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper语音转录系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 40px 0;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .feature-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--primary-color);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--light-bg);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            background: rgba(52, 152, 219, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .audio-preview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #2980b9);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, var(--primary-color));
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container main-container">
+        <!-- 头部 -->
+        <div class="header-section text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-microphone-alt me-3"></i>
+                Whisper语音转录系统
+            </h1>
+            <p class="lead mb-0">使用OpenAI Whisper模型进行高质量语音转录</p>
+        </div>
+
+        <!-- 主要内容 -->
+        <div class="container py-5">
+            <!-- 功能介绍 -->
+            <div class="row mb-5">
+                <div class="col-12 text-center mb-4">
+                    <h2 class="fw-bold text-primary">功能特点</h2>
+                    <p class="text-muted">简单高效的语音识别工具</p>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="feature-card p-4 text-center">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                            <i class="fas fa-file-upload text-white fa-2x"></i>
+                        </div>
+                        <h4 class="fw-bold">音频上传</h4>
+                        <p class="text-muted">支持WAV、MP3、M4A等多种音频格式</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="feature-card p-4 text-center">
+                        <div class="feature-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                            <i class="fas fa-language text-white fa-2x"></i>
+                        </div>
+                        <h4 class="fw-bold">智能转录</h4>
+                        <p class="text-muted">使用Whisper Base模型自动识别与转录</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 音频上传区 -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title fw-bold text-primary mb-4">
+                                <i class="fas fa-upload me-2"></i>上传音频文件
+                            </h3>
+
+                            <!-- 加噪控制面板 -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card bg-light border-primary">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold text-primary mb-3">
+                                                <i class="fas fa-volume-up me-2"></i>加噪测试设置
+                                            </h5>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-7">
+                                                    <label for="noiseLevel" class="form-label fw-bold">噪声强度 (dB):</label>
+                                                    <input type="range" class="form-range" id="noiseLevel"
+                                                           min="-20" max="-5" step="1" value="-10"
+                                                           oninput="updateNoiseLabel(this.value)">
+                                                    <div class="d-flex justify-content-between">
+                                                        <small class="text-muted">-20dB (强噪声)</small>
+                                                        <small class="fw-bold text-primary" id="noiseLabel">-10dB</small>
+                                                        <small class="text-muted">-5dB (弱噪声)</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-5 text-end">
+                                                    <div class="form-check form-switch d-inline-block">
+                                                        <input class="form-check-input" type="checkbox" id="enableNoise">
+                                                        <label class="form-check-label fw-bold" for="enableNoise">启用加噪</label>
+                                                    </div>
+                                                    <p class="text-muted small mb-0 mt-2">上传转录和默认数据集测试均会应用此设置</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <h4>拖放文件到此处或点击选择</h4>
+                                <p class="text-muted mb-3">支持 WAV, MP3, M4A, FLAC, OGG 格式，最大 16MB</p>
+                                <div class="d-flex gap-3 justify-content-center flex-wrap align-items-center">
+                                    <button class="btn btn-primary btn-lg" id="selectFileBtn" type="button">
+                                        <i class="fas fa-folder-open me-2"></i>选择文件
+                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label for="sampleCount" class="text-muted mb-0">样本数量:</label>
+                                        <input type="number" id="sampleCount" class="form-control"
+                                               style="width: 100px;" value="100" min="1" max="500">
+                                    </div>
+                                    <button class="btn btn-success btn-lg" type="button" onclick="testDefaultDataset()">
+                                        <i class="fas fa-flask me-2"></i>测试默认数据集
+                                    </button>
+                                </div>
+                                <input type="file" id="fileInput" class="d-none" accept=".wav,.mp3,.m4a,.flac,.ogg">
+                            </div>
+
+                            <div id="fileInfo" class="audio-preview" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 id="fileName" class="mb-1"></h5>
+                                        <p id="fileSize" class="text-muted mb-0"></p>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-success me-2" onclick="transcribeAudio()">
+                                            <i class="fas fa-play me-2"></i>开始转录
+                                        </button>
+                                        <button class="btn btn-danger" onclick="clearFile()">
+                                            <i class="fas fa-times me-2"></i>清除
+                                        </button>
+                                    </div>
+                                </div>
+                                <audio id="audioPlayer" class="w-100 mt-3" controls style="display: none;"></audio>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果展示区 -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title fw-bold text-primary mb-4">
+                                <i class="fas fa-chart-bar me-2"></i>转录结果
+                            </h3>
+
+                            <div id="transcriptionResult" class="result-card" style="display: none;">
+                                <h5 class="fw-bold text-primary mb-3">转录结果</h5>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span class="badge bg-primary" id="languageBadge">语言: 检测中...</span>
+                                    <span class="badge bg-success" id="durationBadge">时长: 计算中...</span>
+                                </div>
+                                <div class="transcription-text p-3 bg-white rounded mb-3" id="transcriptionText">
+                                    转录结果将显示在这里...
+                                </div>
+                                <button class="btn btn-outline-primary" onclick="copyTranscription()">
+                                    <i class="fas fa-copy me-2"></i>复制文本
+                                </button>
+                            </div>
+
+                            <div id="noResultMessage" class="text-center py-5">
+                                <i class="fas fa-microphone-slash fa-4x text-muted mb-3"></i>
+                                <h4 class="text-muted">请上传音频文件并开始转录</h4>
+                                <p class="text-muted">您将在这里看到转录结果</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局变量
+        let currentFile = null;
+        let transcriptionData = null;
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            setupFileInput();
+        });
+
+        // 设置文件输入事件监听
+        function setupFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            const selectBtn = document.getElementById('selectFileBtn');
+
+            // 按钮点击触发文件选择
+            selectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInput.click();
+            });
+
+            // 文件选择后处理
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                handleFile(file);
+            });
+        }
+
+        // 设置拖放功能
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+
+                if (e.dataTransfer.files.length) {
+                    const file = e.dataTransfer.files[0];
+                    handleFile(file);
+                }
+            });
+        }
+
+        // 处理文件
+        function handleFile(file) {
+            if (!file) return;
+
+            // 检查文件类型
+            const allowedTypes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/m4a', 'audio/flac', 'audio/ogg'];
+            if (!allowedTypes.includes(file.type) && !file.name.match(/\.(wav|mp3|m4a|flac|ogg)$/i)) {
+                alert('请选择音频文件 (WAV, MP3, M4A, FLAC, OGG)');
+                return;
+            }
+
+            // 检查文件大小
+            if (file.size > 16 * 1024 * 1024) {
+                alert('文件大小不能超过16MB');
+                return;
+            }
+
+            currentFile = file;
+
+            // 显示文件信息
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('noResultMessage').style.display = 'none';
+
+            // 显示音频播放器
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.src = URL.createObjectURL(file);
+            audioPlayer.style.display = 'block';
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 清除文件
+        function clearFile() {
+            currentFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('audioPlayer').style.display = 'none';
+            document.getElementById('noResultMessage').style.display = 'block';
+            document.getElementById('transcriptionResult').style.display = 'none';
+        }
+
+        // 显示加载动画
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // 隐藏加载动画
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // 测试默认数据集
+        function testDefaultDataset() {
+            showLoading();
+
+            const maxSamples = parseInt(document.getElementById('sampleCount').value) || 100;
+
+            // 获取加噪参数
+            const enableNoise = document.getElementById('enableNoise').checked;
+            const noiseLevel = enableNoise ? parseInt(document.getElementById('noiseLevel').value) : null;
+
+            fetch('/test-dataset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    max_samples: maxSamples,
+                    enable_noise: enableNoise,
+                    noise_level: noiseLevel
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.error) {
+                    alert('测试失败: ' + data.error);
+                    return;
+                }
+
+                window.location.href = `/results?file=${data.results_file}`;
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('发生错误: ' + error.message);
+            });
+        }
+
+        // 更新噪声标签
+
+        // 转录音频（支持加噪）
+        function transcribeAudio() {
+            if (!currentFile) {
+                alert('请先选择音频文件');
+                return;
+            }
+
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('audio_file', currentFile);
+
+            // 添加加噪参数
+            const enableNoise = document.getElementById('enableNoise').checked;
+            if (enableNoise) {
+                const noiseLevel = document.getElementById('noiseLevel').value;
+                formData.append('noise_level', noiseLevel);
+            }
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    hideLoading();
+                    alert('上传失败: ' + data.error);
+                    return;
+                }
+
+                return fetch('/transcribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filepath: data.filepath
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.error) {
+                    alert('转录失败: ' + data.error);
+                    return;
+                }
+
+                transcriptionData = data.transcription;
+                displayTranscriptionResult();
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('发生错误: ' + error.message);
+            });
+        }
+
+        // 显示转录结果
+        function displayTranscriptionResult() {
+            document.getElementById('transcriptionResult').style.display = 'block';
+            document.getElementById('noResultMessage').style.display = 'none';
+
+            document.getElementById('transcriptionText').textContent = transcriptionData.text;
+            document.getElementById('languageBadge').textContent = '语言: ' + (transcriptionData.language || '未知');
+            document.getElementById('durationBadge').textContent = '时长: ' + Math.round(transcriptionData.duration) + '秒';
+        }
+
+        // 复制转录文本
+        function copyTranscription() {
+            if (!transcriptionData) return;
+
+            navigator.clipboard.writeText(transcriptionData.text)
+                .then(() => {
+                    alert('转录文本已复制到剪贴板');
+                })
+                .catch(err => {
+                    console.error('复制失败: ', err);
+                });
+        }
+    </script>
+</body>
+</html>

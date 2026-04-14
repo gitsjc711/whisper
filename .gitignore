@@ -1,0 +1,38 @@
+# 忽略您指定的四个文件夹
+whisper-web-app/librispeech_samples/
+whisper-web-app/noisy_audio/
+whisper-web-app/results/
+whisper-web-app/uploads/
+
+# --- 根据第一张图片的项目结构添加的通用规则 ---
+
+# 忽略 IDE（如PyCharm）的配置文件目录
+.idea/
+
+# Python 的字节码缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python 虚拟环境（通常命名为 venv, env, .venv 等）
+venv/
+env/
+.venv/
+
+# Python 打包/分发产生的目录
+*.egg-info/
+dist/
+build/
+
+# 包含环境变量的本地配置文件（通常包含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 操作系统自动生成的系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log

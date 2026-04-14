@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LibriSpeech 测试结果</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-top: 30px;
+            margin-bottom: 30px;
+            padding: 40px;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .result-item.error {
+            border-left-color: var(--accent-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 30px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, var(--secondary-color), #34495e);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            color: white;
+        }
+
+        .wer-badge {
+            font-size: 1.1em;
+            padding: 8px 15px;
+        }
+
+        .transcription-box {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container main-container fade-in">
+        <div class="header-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-5 fw-bold mb-2">
+                        <i class="fas fa-chart-line me-3"></i>
+                        LibriSpeech 测试结果
+                    </h1>
+                    <p class="mb-0" id="testTimestamp">测试时间: 加载中...</p>
+                </div>
+                <button class="btn btn-light btn-lg" onclick="window.location.href='/'">
+                    <i class="fas fa-arrow-left me-2"></i>返回首页
+                </button>
+            </div>
+        </div>
+
+        <div id="resultsContent">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-3 text-muted">正在加载测试结果...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let testResults = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadResults();
+        });
+
+        function loadResults() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const resultsFile = urlParams.get('file');
+
+            if (resultsFile) {
+                fetch(`/results/${resultsFile}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        testResults = data;
+                        displayResults();
+                    })
+                    .catch(error => {
+                        console.error('Error loading results:', error);
+                        showError('加载结果失败');
+                    });
+            } else {
+                showError('未指定结果文件');
+            }
+        }
+
+        function displayResults() {
+            if (!testResults || !testResults.summary) {
+                showError('无效的结果数据');
+                return;
+            }
+
+            const summary = testResults.summary;
+            const results = testResults.results;
+
+            document.getElementById('testTimestamp').textContent = `测试时间: ${summary.timestamp}`;
+
+            const content = document.getElementById('resultsContent');
+            content.innerHTML = `
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                <i class="fas fa-file-audio text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-primary">${summary.total_samples}</h3>
+                            <p class="text-muted mb-0">总样本数</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                                <i class="fas fa-check-circle text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-success">${summary.successful_transcriptions}</h3>
+                            <p class="text-muted mb-0">成功转录</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                <i class="fas fa-times-circle text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-danger">${summary.failed_transcriptions}</h3>
+                            <p class="text-muted mb-0">失败转录</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                <i class="fas fa-percentage text-white fa-2x"></i>
+                            </div>
+                            <h2 class="fw-bold text-warning mb-2">${summary.average_wer !== null ? summary.average_wer + '%' : 'N/A'}</h2>
+                            <p class="text-muted mb-0">平均词错误率 (WER)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                <i class="fas fa-exchange-alt text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-danger">${summary.total_substitutions || 0}</h3>
+                            <p class="text-muted mb-0">替换错误</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                                <i class="fas fa-minus-circle text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-purple">${summary.total_deletions || 0}</h3>
+                            <p class="text-muted mb-0">删除错误</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                <i class="fas fa-plus-circle text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-primary">${summary.total_insertions || 0}</h3>
+                            <p class="text-muted mb-0">插入错误</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                                <i class="fas fa-check-double text-white fa-2x"></i>
+                            </div>
+                            <h3 class="fw-bold text-success">${summary.total_correct || 0}</h3>
+                            <p class="text-muted mb-0">正确词数</p>
+                        </div>
+                    </div>
+                </div>
+
+                ${summary.average_wer !== null ? `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="card-title fw-bold text-primary mb-3">
+                                    <i class="fas fa-chart-line me-2"></i>词错误率分布
+                                </h4>
+                                <div class="chart-container">
+                                    <canvas id="werChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="card-title fw-bold text-primary mb-3">
+                                    <i class="fas fa-chart-pie me-2"></i>错误类型分布
+                                </h4>
+                                <div class="chart-container">
+                                    <canvas id="errorTypeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="card-title fw-bold text-primary mb-3">
+                                    <i class="fas fa-list-alt me-2"></i>详细结果
+                                </h4>
+                                <div id="detailedResults">
+                                    ${results.map((result, index) => createResultItem(result, index)).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            `;
+
+            createCharts();
+        }
+
+        function createResultItem(result, index) {
+            if (result.error) {
+                return `
+                    <div class="result-item error fade-in" style="animation-delay: ${index * 0.1}s">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="fw-bold text-danger mb-2">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>${result.filename}
+                                </h5>
+                                <p class="text-muted mb-0">${result.error}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="result-item fade-in" style="animation-delay: ${index * 0.1}s">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold text-primary mb-2">
+                                <i class="fas fa-file-audio me-2"></i>${result.filename}
+                            </h5>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="badge bg-primary">语言: ${result.language}</span>
+                                <span class="badge bg-success">时长: ${result.duration.toFixed(2)}秒</span>
+                                <span class="badge bg-info">大小: ${result.file_size}</span>
+                                ${result.wer !== undefined ? `<span class="badge bg-warning text-dark wer-badge">WER: ${result.wer}%</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    ${result.ground_truth ? `
+                    <div class="mb-3">
+                        <label class="fw-bold text-muted mb-2">参考文本:</label>
+                        <div class="transcription-box">
+                            <p class="mb-0">${result.ground_truth}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div>
+                        <label class="fw-bold text-muted mb-2">转录结果:</label>
+                        <div class="transcription-box">
+                            <p class="mb-0">${result.transcription}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createCharts() {
+            const results = testResults.results.filter(r => !r.error);
+
+            if (results.length === 0) return;
+
+            const werResults = results.filter(r => r.wer !== undefined);
+
+            // 绘制 WER 折线图
+            if (werResults.length > 0) {
+                const werCtx = document.getElementById('werChart');
+                if (werCtx) {
+                    new Chart(werCtx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: werResults.map(r => r.filename.substring(0, 20) + '...'),
+                            datasets: [{
+                                label: '词错误率 (%)',
+                                data: werResults.map(r => r.wer),
+                                borderColor: 'rgba(243, 156, 18, 1)',
+                                backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                },
+                                title: {
+                                    display: true,
+                                    text: '各样本词错误率 (WER)'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'WER (%)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // 绘制错误类型饼图
+                const summary = testResults.summary;
+                const errorCtx = document.getElementById('errorTypeChart');
+                if (errorCtx) {
+                    new Chart(errorCtx.getContext('2d'), {
+                        type: 'pie',
+                        data: {
+                            labels: ['替换错误', '删除错误', '插入错误', '正确词数'],
+                            datasets: [{
+                                data: [
+                                    summary.total_substitutions || 0,
+                                    summary.total_deletions || 0,
+                                    summary.total_insertions || 0,
+                                    summary.total_correct || 0
+                                ],
+                                backgroundColor: [
+                                    'rgba(231, 76, 60, 0.7)',
+                                    'rgba(155, 89, 182, 0.7)',
+                                    'rgba(52, 152, 219, 0.7)',
+                                    'rgba(46, 204, 113, 0.7)'
+                                ],
+                                borderColor: [
+                                    'rgba(231, 76, 60, 1)',
+                                    'rgba(155, 89, 182, 1)',
+                                    'rgba(52, 152, 219, 1)',
+                                    'rgba(46, 204, 113, 1)'
+                                ],
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom'
+                                },
+                                title: {
+                                    display: true,
+                                    text: '总体错误类型分布'
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('resultsContent').innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-circle fa-4x text-danger mb-3"></i>
+                    <h3 class="text-danger">${message}</h3>
+                    <button class="btn btn-primary mt-3" onclick="window.location.href='/'">
+                        <i class="fas fa-home me-2"></i>返回首页
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

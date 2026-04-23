@@ -143,7 +143,7 @@ class AudioService:
         :param noise_level: 噪声强度 (dB)，None 表示不加噪
         :return: (文件路径, 文件名)
         """
-        from backend.utils.file_utils import allowed_file, generate_filename
+        from ..utils.file_utils import allowed_file, generate_filename
 
         if file and allowed_file(file.filename, allowed_extensions):
             filename = generate_filename(file.filename)
